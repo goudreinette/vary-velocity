@@ -32,7 +32,7 @@ impl Default for VaryVelocityParameters {
 }
 
 
-static MAX_VARIANCE: f32 = 5.;
+static MAX_VARIANCE: f32 = 25.;
 
 
 /**
@@ -52,7 +52,7 @@ struct VaryVelocity {
 impl VaryVelocity {
     fn add_event(&mut self, e: MidiEvent) {
         let velocity = e.data[2];
-        let variance = self.params.variance.get() * 3.;
+        let variance = self.params.variance.get() * MAX_VARIANCE;
 
         let normal = Normal::new(velocity as f32, variance).unwrap();
         let v = normal.sample(&mut rand::thread_rng()).max(0.).min(127.) as f32;
@@ -82,7 +82,7 @@ impl Plugin for VaryVelocity {
         Info {
             name: "VaryVelocity".to_string(),
             vendor: "Rein van der Woerd".to_string(),
-            unique_id: 243723072,
+            unique_id: 127844320,
             version: 1,
             inputs: 2,
             outputs: 2,
@@ -140,7 +140,7 @@ impl PluginParameters for VaryVelocityParameters {
     // the `get_parameter` function reads the value of a parameter.
     fn get_parameter(&self, index: i32) -> f32 {
         match index {
-            0 => self.variance.get() * MAX_VARIANCE,
+            0 => self.variance.get(),
             _ => 0.0,
         }
     }
@@ -149,7 +149,7 @@ impl PluginParameters for VaryVelocityParameters {
     fn set_parameter(&self, index: i32, val: f32) {
         #[allow(clippy::single_match)]
         match index {
-            0 => self.variance.set(val.max(0.0000000001) * MAX_VARIANCE),
+            0 => self.variance.set(val.max(0.0000000001)),
             _ => (),
         }
     }
@@ -158,7 +158,7 @@ impl PluginParameters for VaryVelocityParameters {
     // format it into a string that makes the most since.
     fn get_parameter_text(&self, index: i32) -> String {
         match index {
-            0 =>  format!("{:.1}", self.variance .get()),
+            0 =>  format!("{:.1}", self.variance.get() * MAX_VARIANCE),
             _ => "".to_string(),
         }
     }
