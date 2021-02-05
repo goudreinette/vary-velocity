@@ -20,6 +20,7 @@ use rand_distr::{Normal, Distribution};
  */ 
 struct VaryVelocityParameters {
     variance: AtomicFloat,
+    minimum: AtomicFloat
 }
 
 
@@ -27,12 +28,14 @@ impl Default for VaryVelocityParameters {
     fn default() -> VaryVelocityParameters {
         VaryVelocityParameters {
             variance: AtomicFloat::new(0.0),
+            minimum: AtomicFloat::new(0.0)
         }
     }
 }
 
 
 static MAX_VARIANCE: f32 = 25.;
+static MAX_MINIMUM: f32 = 127.;
 
 
 /**
@@ -53,9 +56,10 @@ impl VaryVelocity {
     fn add_event(&mut self, e: MidiEvent) {
         let velocity = e.data[2];
         let variance = self.params.variance.get() * MAX_VARIANCE;
+        let minimum = self.params.minimum.get() * MAX_MINIMUM;
 
         let normal = Normal::new(velocity as f32, variance).unwrap();
-        let v = normal.sample(&mut rand::thread_rng()).max(0.).min(127.) as f32;
+        let v = normal.sample(&mut rand::thread_rng()).max(minimum).min(127.) as f32;
 
         self.immediate_events.push(MidiEvent {
             data: [e.data[0], e.data[1], v as u8],
@@ -88,7 +92,7 @@ impl Plugin for VaryVelocity {
             outputs: 2,
             // This `parameters` bit is important; without it, none of our
             // parameters will be shown!
-            parameters: 1,
+            parameters: 2,
             category: Category::Effect,
             ..Default::default()
         }
@@ -141,6 +145,7 @@ impl PluginParameters for VaryVelocityParameters {
     fn get_parameter(&self, index: i32) -> f32 {
         match index {
             0 => self.variance.get(),
+            1 => self.minimum.get(),
             _ => 0.0,
         }
     }
@@ -150,6 +155,7 @@ impl PluginParameters for VaryVelocityParameters {
         #[allow(clippy::single_match)]
         match index {
             0 => self.variance.set(val.max(0.0000000001)),
+            1 => self.minimum.set(val),
             _ => (),
         }
     }
@@ -159,6 +165,7 @@ impl PluginParameters for VaryVelocityParameters {
     fn get_parameter_text(&self, index: i32) -> String {
         match index {
             0 =>  format!("{:.1}", self.variance.get() * MAX_VARIANCE),
+            1 =>  format!("{:}", self.variance.get() * MAX_VARIANCE),
             _ => "".to_string(),
         }
     }
@@ -167,6 +174,7 @@ impl PluginParameters for VaryVelocityParameters {
     fn get_parameter_name(&self, index: i32) -> String {
         match index {
             0 => "Velocity variance",
+            1 => "Minimum velocity",
             _ => "",
         }
         .to_string()
